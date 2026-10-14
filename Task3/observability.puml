@@ -1,0 +1,62 @@
+@startuml
+
+title Africa Delivery — стратегия наблюдаемости
+
+top to bottom direction
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam linetype ortho
+
+actor "Дежурный инженер" as SRE
+
+package "Africa Delivery MVP" {
+    component "Мобильное приложение" as APP
+    component "API / Модульный монолит" as API
+    component "Адаптеры внешних API" as ADAPTER
+    database "Основная БД" as DB
+}
+
+cloud "Внешние провайдеры\nM-Pesa, Flutterwave\nSendbox, Sendy" as EXT
+
+package "Сбор данных" {
+    component "OpenTelemetry Collector" as OTEL
+    component "Сборщик логов" as LOGCOL
+    component "Synthetic Monitoring" as SYN
+}
+
+package "Хранение и анализ" {
+    database "Prometheus\nМетрики и SLI" as PROM
+    database "Хранилище логов" as LOG
+    database "Jaeger\nТрассировка" as TRACE
+    component "Grafana\nSLO и Error Budget" as GRAF
+    component "Alertmanager\nОповещения" as ALERT
+}
+
+APP --> API : HTTPS
+API --> DB
+API --> ADAPTER
+ADAPTER --> EXT : API
+
+API --> OTEL : Метрики и трассировка
+ADAPTER --> OTEL : Метрики и трассировка
+
+API --> LOGCOL : Логи
+ADAPTER --> LOGCOL : Логи интеграций
+
+SYN --> API : Тестовые запросы
+SYN --> OTEL : Результаты проверок
+
+OTEL --> PROM : Метрики
+OTEL --> TRACE : Трассировка
+LOGCOL --> LOG : Логи
+
+PROM --> GRAF
+PROM --> ALERT
+LOG --> GRAF
+TRACE --> GRAF
+
+ALERT --> SRE : Оповещение об инциденте
+SRE --> GRAF : Анализ состояния системы
+
+@enduml
