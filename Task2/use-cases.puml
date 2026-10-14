@@ -1,0 +1,64 @@
+@startuml
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+actor "Покупатель" as Buyer
+actor "Продавец" as Seller
+actor "CEO" as CEO
+actor "Платёжный провайдер" as PSP
+actor "Логистический партнёр" as Logistics
+actor "Шлюз уведомлений" as MSG
+
+rectangle "Africa Delivery — MVP" {
+
+    usecase "Просмотреть каталог" as UC1
+    usecase "Оформить заказ" as UC2
+    usecase "Оплатить заказ" as UC3
+    usecase "Получить уведомление" as UC4
+    usecase "Просмотреть свои заказы" as UC5
+
+    usecase "Зарегистрироваться\nкак продавец" as UC6
+    usecase "Управлять товарами" as UC7
+    usecase "Получить выплату\nза заказ" as UC8
+
+    usecase "Инициировать выплату\nпродавцу" as UC9
+    usecase "Обработать статус\nплатежа или выплаты" as UC10
+
+    usecase "Оформить передачу\nтовара в доставку" as UC11
+    usecase "Создать заявку\nна доставку" as UC12
+    usecase "Зарегистрировать приём\nотправления" as UC13
+
+    usecase "Просмотреть\nбазовую аналитику" as UC14
+}
+
+Buyer --> UC1
+Buyer --> UC2
+Buyer --> UC3
+Buyer --> UC4
+Buyer --> UC5
+
+Seller --> UC6
+Seller --> UC7
+Seller --> UC8
+Seller --> UC11
+Seller --> UC4
+
+PSP --> UC3
+PSP --> UC9
+PSP --> UC10
+
+Logistics --> UC12
+Logistics --> UC13
+
+MSG --> UC4
+
+CEO --> UC14
+
+UC2 ..> UC3 : <<include>>
+UC8 ..> UC9 : <<include>>
+UC9 ..> UC10 : <<include>>
+
+UC11 ..> UC12 : <<include>>
+UC13 ..> UC12 : <<extend>>
+@enduml
