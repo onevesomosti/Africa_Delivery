@@ -1,0 +1,56 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_TOP_DOWN()
+
+title Africa Delivery — Regional Container Architecture
+
+Person(buyer, "Покупатель", "Каталог, заказ, оплата")
+Person(ceo, "CEO", "Аналитика")
+
+System_Ext(psp, "M-Pesa / Flutterwave", "Лицензированные PSP")
+System_Ext(logistics, "Sendbox / Sendy", "Логистика")
+
+System_Boundary(ng, "Нигерия — локальный провайдер") {
+Container(ng_api, "Marketplace NG", "Application", "Модульный монолит")
+Container(ng_policy, "Data Policy NG", "Module", "Контроль передачи данных")
+ContainerDb(ng_db, "Nigeria DB", "PostgreSQL", "Профили, заказы, платежи, согласия")
+Container(ng_keys, "Key Storage NG", "KMS / Vault", "Локальные ключи")
+}
+
+System_Boundary(ke, "Кения — локальный провайдер") {
+Container(ke_api, "Marketplace KE", "Application", "Модульный монолит")
+Container(ke_policy, "Data Policy KE", "Module", "Контроль передачи данных")
+ContainerDb(ke_db, "Kenya DB", "PostgreSQL", "Профили, заказы, платежи, согласия")
+Container(ke_keys, "Key Storage KE", "KMS / Vault", "Локальные ключи")
+}
+
+System_Boundary(za, "ЮАР — AWS af-south-1, следующий этап") {
+Container(za_api, "Marketplace ZA", "Application", "Региональный экземпляр")
+ContainerDb(za_db, "South Africa DB", "PostgreSQL", "Региональные данные")
+Container(analytics, "Analytics", "Analytics", "Обезличенные агрегаты")
+}
+
+Rel(buyer, ng_api, "Покупки в Нигерии", "HTTPS")
+Rel(buyer, ke_api, "Покупки в Кении", "HTTPS")
+
+Rel(ng_api, ng_db, "Локальные данные", "SQL")
+Rel(ng_api, ng_keys, "Ключи", "API")
+Rel(ng_api, ng_policy, "Проверка экспорта", "Internal API")
+
+Rel(ke_api, ke_db, "Локальные данные", "SQL")
+Rel(ke_api, ke_keys, "Ключи", "API")
+Rel(ke_api, ke_policy, "Проверка экспорта", "Internal API")
+
+Rel(za_api, za_db, "Локальные данные", "SQL")
+
+Rel(ng_api, psp, "Платежи", "HTTPS")
+Rel(ke_api, psp, "Платежи", "HTTPS")
+Rel(ng_api, logistics, "Доставка", "HTTPS")
+Rel(ke_api, logistics, "Доставка", "HTTPS")
+
+Rel(ng_policy, analytics, "Только разрешённые агрегаты", "HTTPS")
+Rel(ke_policy, analytics, "Только разрешённые агрегаты", "HTTPS")
+Rel(ceo, analytics, "Отчёты", "HTTPS")
+
+@enduml

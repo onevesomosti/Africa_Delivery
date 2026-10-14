@@ -1,0 +1,77 @@
+@startuml
+title Africa Delivery — Диаграмма развёртывания по регионам
+
+top to bottom direction
+
+skinparam backgroundColor white
+skinparam shadowing false
+
+node "Нигерия — локальный облачный провайдер" as NG {
+    node "Контур приложения" {
+        artifact "Маркетплейс Нигерии\nЭкземпляр 1" as NG1
+        artifact "Маркетплейс Нигерии\nЭкземпляр 2" as NG2
+    }
+
+    database "Основная БД Нигерии\nPostgreSQL" as NGDB
+    database "Резервная БД Нигерии\nPostgreSQL" as NGST
+    folder "Локальные резервные копии" as NGB
+    artifact "Хранилище ключей шифрования" as NGK
+}
+
+node "Кения — локальный облачный провайдер" as KE {
+    node "Контур приложения" {
+        artifact "Маркетплейс Кении\nЭкземпляр 1" as KE1
+        artifact "Маркетплейс Кении\nЭкземпляр 2" as KE2
+    }
+
+    database "Основная БД Кении\nPostgreSQL" as KEDB
+    database "Резервная БД Кении\nPostgreSQL" as KEST
+    folder "Локальные резервные копии" as KEB
+    artifact "Хранилище ключей шифрования" as KEK
+}
+
+node "ЮАР — AWS af-south-1\nБудущее развёртывание" as ZA {
+    artifact "Маркетплейс ЮАР" as ZAAPP
+    database "База данных ЮАР\nPostgreSQL" as ZADB
+    artifact "Обезличенная аналитика" as ZAA
+}
+
+cloud "Мобильные приложения покупателей" as CLIENT
+cloud "Платёжные и логистические партнёры" as EXT
+
+CLIENT --> NG1 : HTTPS
+CLIENT --> KE1 : HTTPS
+
+NG1 --> NGDB : SQL
+NG2 --> NGDB : SQL
+NGDB --> NGST : Локальная репликация
+NGDB --> NGB : Шифрованное резервное копирование
+NG1 --> NGK : Получение ключей
+
+KE1 --> KEDB : SQL
+KE2 --> KEDB : SQL
+KEDB --> KEST : Локальная репликация
+KEDB --> KEB : Шифрованное резервное копирование
+KE1 --> KEK : Получение ключей
+
+ZAAPP --> ZADB : SQL
+
+NG1 --> EXT : HTTPS
+KE1 --> EXT : HTTPS
+
+NG1 ..> ZAA : Только разрешённые\nобезличенные агрегаты
+KE1 ..> ZAA : Только разрешённые\nобезличенные агрегаты
+
+note bottom of NG
+  Все персональные данные
+  и резервные копии
+  остаются в Нигерии
+end note
+
+note bottom of KE
+  Все персональные данные
+  и резервные копии
+  остаются в Кении
+end note
+
+@enduml
