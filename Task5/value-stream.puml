@@ -1,0 +1,26 @@
+@startuml
+!pragma layout smetana
+title Africa Delivery — Value Stream покупки и выполнения заказа
+left to right direction
+skinparam shadowing false
+skinparam defaultFontName Arial
+rectangle "1. Подготовить предложение\nC1 Продавцы\nC2 Ассортимент\nC10 Операции" as A
+rectangle "2. Найти и выбрать\nC3 Выбор товара\nC5 Профиль" as B
+rectangle "3. Оформить заказ\nC4 Заказы" as C
+rectangle "4. Подтвердить оплату\nC6 Платежи" as D
+rectangle "5. Доставить и сообщить\nC7 Доставка\nC8 Уведомления" as E
+rectangle "6. Завершить и улучшить\nC9 Возвраты\nC11 Аналитика" as F
+A --> B
+B --> C
+C --> D
+D --> E
+E --> F
+rectangle "Сквозные возможности\nC12 Безопасность и надёжность\nC13 Мультирегиональность\nC14 B2B в развитии" as G
+G .. A
+G .. D
+G .. F
+note bottom of F
+C9 автоматизировано после MVP.
+C14 добавляется после проверки спроса.
+end note
+@enduml
