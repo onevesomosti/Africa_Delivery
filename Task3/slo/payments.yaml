@@ -1,0 +1,85 @@
+apiVersion: openslo/v1
+kind: Service
+metadata:
+  name: payments
+  displayName: Оплата заказов
+
+---
+apiVersion: openslo/v1
+kind: SLI
+metadata:
+  name: payments-availability
+  displayName: Доступность приёма платежей
+spec:
+  description: >
+    Доля допустимых платёжных запросов,
+    успешно принятых и сохранённых платформой.
+  ratioMetric:
+    counter: true
+    good:
+      metricSource:
+        type: Prometheus
+        spec:
+          query: PAYMENTS_ACCEPTED_REQUESTS
+    total:
+      metricSource:
+        type: Prometheus
+        spec:
+          query: PAYMENTS_TOTAL_VALID_REQUESTS
+
+---
+apiVersion: openslo/v1
+kind: SLO
+metadata:
+  name: payments-availability-slo
+  displayName: SLO доступности оплаты
+spec:
+  service: payments
+  indicatorRef: payments-availability
+  timeWindow:
+    - duration: 30d
+      isRolling: true
+  budgetingMethod: Occurrences
+  objectives:
+    - displayName: Доступность 99.9%
+      target: 0.999
+
+---
+apiVersion: openslo/v1
+kind: SLI
+metadata:
+  name: payments-latency
+  displayName: Время приёма платежей
+spec:
+  description: >
+    Доля платёжных запросов,
+    принятых платформой не дольше чем за 2 секунды.
+  ratioMetric:
+    counter: true
+    good:
+      metricSource:
+        type: Prometheus
+        spec:
+          query: PAYMENTS_REQUESTS_WITHIN_2_SECONDS
+    total:
+      metricSource:
+        type: Prometheus
+        spec:
+          query: PAYMENTS_TOTAL_VALID_REQUESTS
+
+---
+apiVersion: openslo/v1
+kind: SLO
+metadata:
+  name: payments-latency-slo
+  displayName: SLO производительности оплаты
+spec:
+  service: payments
+  indicatorRef: payments-latency
+  timeWindow:
+    - duration: 30d
+      isRolling: true
+  budgetingMethod: Occurrences
+  objectives:
+    - displayName: 99% запросов за 2 секунды
+      target: 0.99
