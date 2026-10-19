@@ -1,33 +1,44 @@
 @startuml
-title Africa Delivery — Диаграмма развёртывания по регионам
+title Africa Delivery — Диаграмма развёртывания и аварийного переключения
 
 top to bottom direction
 
 skinparam backgroundColor white
 skinparam shadowing false
 
-node "Нигерия — локальный облачный провайдер" as NG {
-    node "Контур приложения" {
+cloud "Мобильные приложения покупателей" as CLIENT
+cloud "Платёжные и логистические партнёры" as EXT
+
+package "Нигерия — локальный контур" as NG {
+    component "Маршрутизация Нигерии\nпроверка доступности" as NG_ROUTE
+    node "Площадка А — основная\nНезависимый ЦОД / облако" as NG_A {
         artifact "Маркетплейс Нигерии\nЭкземпляр 1" as NG1
         artifact "Маркетплейс Нигерии\nЭкземпляр 2" as NG2
+        database "Основная БД Нигерии\nPostgreSQL" as NGDB
+        artifact "Хранилище ключей\nНигерии" as NGK
     }
-
-    database "Основная БД Нигерии\nPostgreSQL" as NGDB
-    database "Резервная БД Нигерии\nPostgreSQL" as NGST
-    folder "Локальные резервные копии" as NGB
-    artifact "Хранилище ключей шифрования" as NGK
+    node "Площадка Б — резервная (Нигерия)\nНезависимый ЦОД / облако" as NG_B {
+        artifact "Маркетплейс Нигерии\nРезервный экземпляр" as NGR
+        database "Резервная БД Нигерии\nPostgreSQL" as NGST
+        folder "Локальные зашифрованные\nрезервные копии" as NGB
+        artifact "Резервное хранилище\nключей Нигерии" as NGKR
+    }
 }
 
-node "Кения — локальный облачный провайдер" as KE {
-    node "Контур приложения" {
+package "Кения — локальный контур" as KE {
+    component "Маршрутизация Кении\nпроверка доступности" as KE_ROUTE
+    node "Площадка А — основная\nНезависимый ЦОД / облако" as KE_A {
         artifact "Маркетплейс Кении\nЭкземпляр 1" as KE1
         artifact "Маркетплейс Кении\nЭкземпляр 2" as KE2
+        database "Основная БД Кении\nPostgreSQL" as KEDB
+        artifact "Хранилище ключей\nКении" as KEK
     }
-
-    database "Основная БД Кении\nPostgreSQL" as KEDB
-    database "Резервная БД Кении\nPostgreSQL" as KEST
-    folder "Локальные резервные копии" as KEB
-    artifact "Хранилище ключей шифрования" as KEK
+    node "Площадка Б — резервная (Кения)\nНезависимый ЦОД / облако" as KE_B {
+        artifact "Маркетплейс Кении\nРезервный экземпляр" as KER
+        database "Резервная БД Кении\nPostgreSQL" as KEST
+        folder "Локальные зашифрованные\nрезервные копии" as KEB
+        artifact "Резервное хранилище\nключей Кении" as KEKR
+    }
 }
 
 node "ЮАР — AWS af-south-1\nБудущее развёртывание" as ZA {
@@ -36,42 +47,58 @@ node "ЮАР — AWS af-south-1\nБудущее развёртывание" as Z
     artifact "Обезличенная аналитика" as ZAA
 }
 
-cloud "Мобильные приложения покупателей" as CLIENT
-cloud "Платёжные и логистические партнёры" as EXT
-
-CLIENT --> NG1 : HTTPS
-CLIENT --> KE1 : HTTPS
+CLIENT --> NG_ROUTE : HTTPS
+CLIENT --> KE_ROUTE : HTTPS
+NG_ROUTE --> NG1 : Основной трафик
+NG_ROUTE ..> NGR : Трафик после failover
+KE_ROUTE --> KE1 : Основной трафик
+KE_ROUTE ..> KER : Трафик после failover
 
 NG1 --> NGDB : SQL
 NG2 --> NGDB : SQL
-NGDB --> NGST : Локальная репликация
-NGDB --> NGB : Шифрованное резервное копирование
+NGR --> NGST : SQL после переключения
+NGDB --> NGST : Синхронная репликация\nмежду площадками
+NGDB --> NGB : Зашифрованное\nрезервное копирование
 NG1 --> NGK : Получение ключей
+NGR --> NGKR : Получение ключей
 
 KE1 --> KEDB : SQL
 KE2 --> KEDB : SQL
-KEDB --> KEST : Локальная репликация
-KEDB --> KEB : Шифрованное резервное копирование
+KER --> KEST : SQL после переключения
+KEDB --> KEST : Синхронная репликация\nмежду площадками
+KEDB --> KEB : Зашифрованное\nрезервное копирование
 KE1 --> KEK : Получение ключей
-
-ZAAPP --> ZADB : SQL
+KER --> KEKR : Получение ключей
 
 NG1 --> EXT : HTTPS
+NGR ..> EXT : HTTPS после переключения
 KE1 --> EXT : HTTPS
+KER ..> EXT : HTTPS после переключения
 
+ZAAPP --> ZADB : SQL
 NG1 ..> ZAA : Только разрешённые\nобезличенные агрегаты
 KE1 ..> ZAA : Только разрешённые\nобезличенные агрегаты
 
+note bottom of NG_ROUTE
+  Порядок переключения для каждой страны:
+  проверка состояния реплики,
+  блокировка записи на старой площадке,
+  активация резервной БД,
+  перенаправление трафика.
+  После переключения: проверки
+  каталога, заказов и платежей.
+end note
+
 note bottom of NG
-  Все персональные данные
-  и резервные копии
-  остаются в Нигерии
+  Две независимые площадки внутри Нигерии.
+  Персональные данные, реплики, ключи
+  и резервные копии остаются в Нигерии.
 end note
 
 note bottom of KE
-  Все персональные данные
-  и резервные копии
-  остаются в Кении
+  Две независимые площадки внутри Кении.
+  Персональные данные, реплики, ключи
+  и резервные копии остаются в Кении.
 end note
 
 @enduml
