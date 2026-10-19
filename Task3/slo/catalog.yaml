@@ -1,0 +1,85 @@
+apiVersion: openslo/v1
+kind: Service
+metadata:
+  name: catalog
+  displayName: Каталог товаров
+
+---
+apiVersion: openslo/v1
+kind: SLI
+metadata:
+  name: catalog-availability
+  displayName: Доступность каталога
+spec:
+  description: >
+    Доля допустимых запросов к каталогу,
+    завершившихся без технической ошибки.
+  ratioMetric:
+    counter: true
+    good:
+      metricSource:
+        type: Prometheus
+        spec:
+          query: CATALOG_SUCCESSFUL_REQUESTS
+    total:
+      metricSource:
+        type: Prometheus
+        spec:
+          query: CATALOG_TOTAL_VALID_REQUESTS
+
+---
+apiVersion: openslo/v1
+kind: SLO
+metadata:
+  name: catalog-availability-slo
+  displayName: SLO доступности каталога
+spec:
+  service: catalog
+  indicatorRef: catalog-availability
+  timeWindow:
+    - duration: 30d
+      isRolling: true
+  budgetingMethod: Occurrences
+  objectives:
+    - displayName: Доступность 99.9%
+      target: 0.999
+
+---
+apiVersion: openslo/v1
+kind: SLI
+metadata:
+  name: catalog-latency
+  displayName: Время ответа каталога
+spec:
+  description: >
+    Доля запросов к API каталога,
+    выполненных не дольше 1 секунды.
+  ratioMetric:
+    counter: true
+    good:
+      metricSource:
+        type: Prometheus
+        spec:
+          query: CATALOG_REQUESTS_WITHIN_1_SECOND
+    total:
+      metricSource:
+        type: Prometheus
+        spec:
+          query: CATALOG_TOTAL_VALID_REQUESTS
+
+---
+apiVersion: openslo/v1
+kind: SLO
+metadata:
+  name: catalog-latency-slo
+  displayName: SLO производительности каталога
+spec:
+  service: catalog
+  indicatorRef: catalog-latency
+  timeWindow:
+    - duration: 30d
+      isRolling: true
+  budgetingMethod: Occurrences
+  objectives:
+    - displayName: 99% запросов за 1 секунду
+      target: 0.99
