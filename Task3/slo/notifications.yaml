@@ -1,0 +1,86 @@
+apiVersion: openslo/v1
+kind: Service
+metadata:
+  name: notifications
+  displayName: Уведомления
+
+---
+apiVersion: openslo/v1
+kind: SLI
+metadata:
+  name: notifications-availability
+  displayName: Доступность приёма уведомлений
+spec:
+  description: >
+    Доля допустимых уведомлений,
+    успешно принятых и надёжно сохранённых
+    для последующей отправки.
+  ratioMetric:
+    counter: true
+    good:
+      metricSource:
+        type: Prometheus
+        spec:
+          query: NOTIFICATIONS_ACCEPTED
+    total:
+      metricSource:
+        type: Prometheus
+        spec:
+          query: NOTIFICATIONS_TOTAL_VALID
+
+---
+apiVersion: openslo/v1
+kind: SLO
+metadata:
+  name: notifications-availability-slo
+  displayName: SLO доступности уведомлений
+spec:
+  service: notifications
+  indicatorRef: notifications-availability
+  timeWindow:
+    - duration: 30d
+      isRolling: true
+  budgetingMethod: Occurrences
+  objectives:
+    - displayName: Доступность 99.5%
+      target: 0.995
+
+---
+apiVersion: openslo/v1
+kind: SLI
+metadata:
+  name: notifications-delivery-time
+  displayName: Время передачи уведомлений
+spec:
+  description: >
+    Доля уведомлений, переданных провайдеру
+    в течение 60 секунд после создания.
+  ratioMetric:
+    counter: true
+    good:
+      metricSource:
+        type: Prometheus
+        spec:
+          query: NOTIFICATIONS_SENT_WITHIN_60_SECONDS
+    total:
+      metricSource:
+        type: Prometheus
+        spec:
+          query: NOTIFICATIONS_TOTAL_VALID
+
+---
+apiVersion: openslo/v1
+kind: SLO
+metadata:
+  name: notifications-delivery-time-slo
+  displayName: SLO времени отправки уведомлений
+spec:
+  service: notifications
+  indicatorRef: notifications-delivery-time
+  timeWindow:
+    - duration: 30d
+      isRolling: true
+  budgetingMethod: Occurrences
+  objectives:
+    - displayName: 95% уведомлений за 60 секунд
+      target: 0.95
